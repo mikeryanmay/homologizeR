@@ -1,0 +1,21 @@
+#include <Rcpp.h>
+#include <map>
+#include <cstdint>
+#include "trees.hpp"
+#include "phases.hpp"
+
+using namespace Rcpp;
+
+// [[Rcpp::export]]
+List phaseLabelTrees(std::string tree_file) {
+
+    // read the tree file
+    std::map<std::int64_t, Tree> trees = read_tsv_and_parse_trees_by_iteration(tree_file);
+
+    Rcout << "read this many trees: " << trees.size() << std::endl;
+
+
+    List z = List::create();
+    return z;
+
+}

@@ -1,0 +1,26 @@
+{
+    "id": "52A11C05",
+    "path": "~/repos/homologizeR/src/phases.hpp",
+    "project_path": "src/phases.hpp",
+    "type": "hpp",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1770060619116.0,
+    "source_on_save": false,
+    "relative_order": 3,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "133,31",
+        "scrollLine": "111"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1770063500,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1770063500795,
+    "read_only": false,
+    "read_only_alternatives": []
+}

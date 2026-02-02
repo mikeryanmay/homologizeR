@@ -1,0 +1,198 @@
+#ifndef HOMOLOGIZER_TREES_HPP
+#define HOMOLOGIZER_TREES_HPP
+
+#include <cctype>
+#include <cstdlib>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <vector>
+
+namespace homologizer {
+
+class Node {
+public:
+    const std::string& name() const { return name_; }
+    double branch_length() const { return branch_length_; } // parent -> this
+    Node* parent() const { return parent_; }
+    const std::vector<Node*>& children() const { return children_; }
+
+    bool is_leaf() const { return children_.empty(); }
+    std::size_t degree() const { return children_.size(); } // polytomy degree if internal
+
+private:
+    friend class Tree;
+    friend class NewickParser;
+
+    std::string name_;
+    double branch_length_ = 0.0;
+    Node* parent_ = nullptr;
+    std::vector<Node*> children_;
+};
+
+class Tree {
+public:
+    Node* root() const { return root_; }
+    std::size_t size() const { return storage_.size(); }
+
+private:
+    friend class NewickParser;
+
+    Node* make_node() {
+        storage_.emplace_back(std::make_unique<Node>());
+        return storage_.back().get();
+    }
+
+    std::vector<std::unique_ptr<Node>> storage_;
+    Node* root_ = nullptr;
+};
+
+// Newick parser (ignores [ ... ] annotations; supports polytomies)
+class NewickParser {
+public:
+    explicit NewickParser(std::string_view input) : s_(input) {}
+
+    Tree parse_tree() {
+        Tree t;
+        skip_ws_and_brackets();
+        Node* r = parse_subtree(t, nullptr);
+
+        skip_ws_and_brackets();
+        if (!consume_char(';')) throw error("Expected ';' at end of Newick string");
+        skip_ws_and_brackets();
+        if (!eof()) throw error("Unexpected trailing characters after ';'");
+
+        t.root_ = r;
+        return t;
+    }
+
+private:
+    std::string_view s_;
+    std::size_t i_ = 0;
+
+    Node* parse_subtree(Tree& t, Node* parent) {
+        skip_ws_and_brackets();
+
+        Node* n = t.make_node();
+        n->parent_ = parent;
+        if (parent) parent->children_.push_back(n);
+
+        if (peek_raw() == '(') {
+            ++i_; // consume '('
+            skip_ws_and_brackets();
+
+            // first child
+            parse_subtree(t, n);
+            skip_ws_and_brackets();
+
+            // remaining children => polytomies supported
+            while (consume_char(',')) {
+                skip_ws_and_brackets();
+                parse_subtree(t, n);
+                skip_ws_and_brackets();
+            }
+
+            if (!consume_char(')')) throw error("Expected ')' to close child list");
+
+            skip_ws_and_brackets();
+            parse_optional_label_and_length(*n);
+        } else {
+            // leaf
+            parse_optional_label_and_length(*n);
+        }
+
+        return n;
+    }
+
+    void parse_optional_label_and_length(Node& n) {
+        skip_ws_and_brackets();
+
+        std::string label = parse_label();
+        if (!label.empty()) n.name_ = std::move(label);
+
+        skip_ws_and_brackets();
+
+        if (consume_char(':')) {
+            skip_ws_and_brackets();
+            n.branch_length_ = parse_number();
+            skip_ws_and_brackets();
+        }
+
+        skip_ws_and_brackets();
+    }
+
+    std::string parse_label() {
+        skip_ws_and_brackets();
+        std::string out;
+        while (!eof()) {
+            char c = s_[i_];
+            if (c == ':' || c == ',' || c == ')' || c == ';' ||
+                c == '[' || std::isspace((unsigned char)c)) {
+                break;
+            }
+            out.push_back(c);
+            ++i_;
+        }
+        return out;
+    }
+
+    double parse_number() {
+        if (eof()) throw error("Expected number, got end-of-input");
+
+        std::size_t start = i_;
+        while (!eof()) {
+            char c = s_[i_];
+            if (c == ',' || c == ')' || c == ';' || c == '[' ||
+                std::isspace((unsigned char)c)) {
+                break;
+            }
+            ++i_;
+        }
+
+        std::string token(s_.substr(start, i_ - start));
+        if (token.empty()) throw error("Expected number after ':'");
+
+        char* endptr = nullptr;
+        double val = std::strtod(token.c_str(), &endptr);
+        if (endptr == token.c_str() || *endptr != '\0') {
+            throw error("Invalid number token: '" + token + "'");
+        }
+        return val;
+    }
+
+    void skip_ws_and_brackets() {
+        for (;;) {
+            while (!eof() && std::isspace((unsigned char)s_[i_])) ++i_;
+
+            if (!eof() && s_[i_] == '[') {
+                ++i_;
+                while (!eof() && s_[i_] != ']') ++i_;
+                if (eof()) throw error("Unterminated bracket block '[' ...");
+                ++i_;
+                continue;
+            }
+            break;
+        }
+    }
+
+    bool consume_char(char expected) {
+        skip_ws_and_brackets();
+        if (!eof() && s_[i_] == expected) {
+            ++i_;
+            return true;
+        }
+        return false;
+    }
+
+    char peek_raw() const { return eof() ? '\0' : s_[i_]; }
+    bool eof() const { return i_ >= s_.size(); }
+
+    std::runtime_error error(const std::string& msg) const {
+        return std::runtime_error("Newick parse error at pos " + std::to_string(i_) + ": " + msg);
+    }
+};
+
+} // namespace homologizer
+
+#endif // HOMOLOGIZER_TREES_HPP
