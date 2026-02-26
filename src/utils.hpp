@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <fstream>
 
 namespace homologizer {
 
@@ -96,6 +97,114 @@ inline std::string append_tag(const std::string& sample, const std::string& tag)
     return sample + "_" + tag;
 }
 
+// Read first nonempty line for MAP Newick
+static std::string read_single_newick_line(const std::string& path) {
+    std::ifstream in(path);
+    if (!in) throw std::runtime_error("Cannot open MAP tree file: " + path);
+    std::string line;
+    while (std::getline(in, line)) {
+        line = trim(line);
+        if (!line.empty()) return line;
+    }
+    throw std::runtime_error("MAP tree file is empty: " + path);
+}
+
+/// Strip NEXUS-style bracket comments: [ ... ]
+/// Non-nested (sufficient for typical TREE blocks).
+inline std::string strip_nexus_bracket_comments(const std::string& s) {
+    std::string out;
+    out.reserve(s.size());
+    bool in_comment = false;
+    for (char c : s) {
+        if (!in_comment) {
+            if (c == '[') {
+                in_comment = true;
+            } else {
+                out.push_back(c);
+            }
+        } else {
+            if (c == ']') {
+                in_comment = false;
+            }
+        }
+    }
+    return out;
+}
+
+/// Read exactly one Newick tree from a NEXUS file.
+/// Assumes the file contains exactly one `tree ... = <newick>;` entry.
+/// Returns the Newick string including the trailing `;`.
+inline std::string read_single_newick_from_nexus_file(const std::string& path) {
+    std::ifstream in(path);
+    if (!in) {
+        throw std::runtime_error("Cannot open NEXUS file: " + path);
+    }
+
+    std::string line;
+    bool found_tree = false;
+    std::ostringstream newick;
+
+    while (std::getline(in, line)) {
+        // Remove comments early
+        std::string no_comments = strip_nexus_bracket_comments(line);
+
+        // Use your existing trim helper
+        std::string t = trim(no_comments);
+        if (t.empty()) continue;
+
+        if (!found_tree) {
+            // Case-insensitive check for leading "tree"
+            std::string lower = t;
+            std::transform(lower.begin(), lower.end(), lower.begin(),
+                           [](unsigned char c) { return std::tolower(c); });
+
+            if (lower.rfind("tree", 0) == 0) {
+                auto eq = t.find('=');
+                if (eq == std::string::npos) continue;
+
+                found_tree = true;
+                std::string after = trim(t.substr(eq + 1));
+                newick << after;
+
+                // Stop immediately if we already hit ';'
+                if (after.find(';') != std::string::npos) break;
+            }
+        } else {
+            // Continuation lines until ';'
+            newick << ' ' << t;
+            if (t.find(';') != std::string::npos) break;
+        }
+    }
+
+    if (!found_tree) {
+        throw std::runtime_error(
+            "No `tree ... = <newick>;` entry found in NEXUS file: " + path
+        );
+    }
+
+    std::string nwk = strip_nexus_bracket_comments(newick.str());
+    nwk = trim(nwk);
+
+    auto semi = nwk.find(';');
+    if (semi == std::string::npos) {
+        throw std::runtime_error(
+            "Tree entry found but missing terminating ';' in NEXUS file: " + path
+        );
+    }
+
+    nwk = trim(nwk.substr(0, semi + 1));
+
+    // Very cheap sanity check
+    if (nwk.find('(') == std::string::npos) {
+        throw std::runtime_error(
+            "Extracted tree does not look like Newick (no '(' found): " + path
+        );
+    }
+
+    return nwk;
+}
+
 } // namespace homologizer
 
 #endif // HOMOLOGIZER_UTILS_HPP
+

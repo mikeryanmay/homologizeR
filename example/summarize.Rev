@@ -1,0 +1,14 @@
+# # read trees
+# trees = readTreeTrace("22B02_r1/22B02_r1trees_phase_labeled.trees", treetype = "non-clock", burnin = 0.25)
+
+# # compute MAP tree
+# mapTree(trees, file = "22B02_r1/22B02_r1trees_phase_labeled_MAP.tre")
+
+
+# read trees
+trees = readTreeTrace("22B02_r1/22B02_r1_trees_relabeled.trees", treetype = "non-clock", burnin = 0)
+
+# compute MAP tree
+mapTree(trees, file = "22B02_r1/22B02_r1_trees_relabeled_MAP.tre")
+
+

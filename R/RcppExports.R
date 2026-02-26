@@ -5,3 +5,23 @@ phaseLabelTrees <- function(tree_file, phase_files, output_file) {
     invisible(.Call(`_homologizeR_phaseLabelTrees`, tree_file, phase_files, output_file))
 }
 
+identifyCorePhasedSets <- function(phase_labeled_tree_file, C = 0.5, aggregate_alleles = TRUE) {
+    .Call(`_homologizeR_identifyCorePhasedSets`, phase_labeled_tree_file, C, aggregate_alleles)
+}
+
+relabelPhaseLogs <- function(phase_files) {
+    .Call(`_homologizeR_relabelPhaseLogs`, phase_files)
+}
+
+alignPhaseLabels <- function(phase_table, allelic_tips) {
+    .Call(`_homologizeR_alignPhaseLabels`, phase_table, allelic_tips)
+}
+
+relabeledLabelMarginals <- function(relabeled_table, allelic_tips) {
+    .Call(`_homologizeR_relabeledLabelMarginals`, relabeled_table, allelic_tips)
+}
+
+relabelPhaseAndTrees <- function(phase_files, allelic_tips, tree_file = "scratch/22B02_r1/22B02_r1trees.trees", output_prefix = "scratch/22B02_r1/22B02_r1", output_partition_suffix = "_partition_relabeled.log", output_tree_suffix = "_trees_relabeled.trees", output_relabel_map_suffix = "_relabel_map.tsv", output_locus_manifest_suffix = "_locus_manifest.tsv", output_marginal_suffix = "_label_marginals.tsv", burnin = 0.25) {
+    invisible(.Call(`_homologizeR_relabelPhaseAndTrees`, phase_files, allelic_tips, tree_file, output_prefix, output_partition_suffix, output_tree_suffix, output_relabel_map_suffix, output_locus_manifest_suffix, output_marginal_suffix, burnin))
+}
+

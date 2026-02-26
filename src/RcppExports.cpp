@@ -22,9 +22,81 @@ BEGIN_RCPP
     return R_NilValue;
 END_RCPP
 }
+// identifyCorePhasedSets
+Rcpp::List identifyCorePhasedSets(std::string phase_labeled_tree_file, double C, bool aggregate_alleles);
+RcppExport SEXP _homologizeR_identifyCorePhasedSets(SEXP phase_labeled_tree_fileSEXP, SEXP CSEXP, SEXP aggregate_allelesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< std::string >::type phase_labeled_tree_file(phase_labeled_tree_fileSEXP);
+    Rcpp::traits::input_parameter< double >::type C(CSEXP);
+    Rcpp::traits::input_parameter< bool >::type aggregate_alleles(aggregate_allelesSEXP);
+    rcpp_result_gen = Rcpp::wrap(identifyCorePhasedSets(phase_labeled_tree_file, C, aggregate_alleles));
+    return rcpp_result_gen;
+END_RCPP
+}
+// relabelPhaseLogs
+Rcpp::DataFrame relabelPhaseLogs(Rcpp::CharacterVector phase_files);
+RcppExport SEXP _homologizeR_relabelPhaseLogs(SEXP phase_filesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::CharacterVector >::type phase_files(phase_filesSEXP);
+    rcpp_result_gen = Rcpp::wrap(relabelPhaseLogs(phase_files));
+    return rcpp_result_gen;
+END_RCPP
+}
+// alignPhaseLabels
+Rcpp::List alignPhaseLabels(Rcpp::DataFrame phase_table, Rcpp::List allelic_tips);
+RcppExport SEXP _homologizeR_alignPhaseLabels(SEXP phase_tableSEXP, SEXP allelic_tipsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type phase_table(phase_tableSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type allelic_tips(allelic_tipsSEXP);
+    rcpp_result_gen = Rcpp::wrap(alignPhaseLabels(phase_table, allelic_tips));
+    return rcpp_result_gen;
+END_RCPP
+}
+// relabeledLabelMarginals
+Rcpp::DataFrame relabeledLabelMarginals(Rcpp::DataFrame relabeled_table, Rcpp::List allelic_tips);
+RcppExport SEXP _homologizeR_relabeledLabelMarginals(SEXP relabeled_tableSEXP, SEXP allelic_tipsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type relabeled_table(relabeled_tableSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type allelic_tips(allelic_tipsSEXP);
+    rcpp_result_gen = Rcpp::wrap(relabeledLabelMarginals(relabeled_table, allelic_tips));
+    return rcpp_result_gen;
+END_RCPP
+}
+// relabelPhaseAndTrees
+void relabelPhaseAndTrees(Rcpp::CharacterVector phase_files, Rcpp::List allelic_tips, std::string tree_file, std::string output_prefix, std::string output_partition_suffix, std::string output_tree_suffix, std::string output_relabel_map_suffix, std::string output_locus_manifest_suffix, std::string output_marginal_suffix, double burnin);
+RcppExport SEXP _homologizeR_relabelPhaseAndTrees(SEXP phase_filesSEXP, SEXP allelic_tipsSEXP, SEXP tree_fileSEXP, SEXP output_prefixSEXP, SEXP output_partition_suffixSEXP, SEXP output_tree_suffixSEXP, SEXP output_relabel_map_suffixSEXP, SEXP output_locus_manifest_suffixSEXP, SEXP output_marginal_suffixSEXP, SEXP burninSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::CharacterVector >::type phase_files(phase_filesSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type allelic_tips(allelic_tipsSEXP);
+    Rcpp::traits::input_parameter< std::string >::type tree_file(tree_fileSEXP);
+    Rcpp::traits::input_parameter< std::string >::type output_prefix(output_prefixSEXP);
+    Rcpp::traits::input_parameter< std::string >::type output_partition_suffix(output_partition_suffixSEXP);
+    Rcpp::traits::input_parameter< std::string >::type output_tree_suffix(output_tree_suffixSEXP);
+    Rcpp::traits::input_parameter< std::string >::type output_relabel_map_suffix(output_relabel_map_suffixSEXP);
+    Rcpp::traits::input_parameter< std::string >::type output_locus_manifest_suffix(output_locus_manifest_suffixSEXP);
+    Rcpp::traits::input_parameter< std::string >::type output_marginal_suffix(output_marginal_suffixSEXP);
+    Rcpp::traits::input_parameter< double >::type burnin(burninSEXP);
+    relabelPhaseAndTrees(phase_files, allelic_tips, tree_file, output_prefix, output_partition_suffix, output_tree_suffix, output_relabel_map_suffix, output_locus_manifest_suffix, output_marginal_suffix, burnin);
+    return R_NilValue;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_homologizeR_phaseLabelTrees", (DL_FUNC) &_homologizeR_phaseLabelTrees, 3},
+    {"_homologizeR_identifyCorePhasedSets", (DL_FUNC) &_homologizeR_identifyCorePhasedSets, 3},
+    {"_homologizeR_relabelPhaseLogs", (DL_FUNC) &_homologizeR_relabelPhaseLogs, 1},
+    {"_homologizeR_alignPhaseLabels", (DL_FUNC) &_homologizeR_alignPhaseLabels, 2},
+    {"_homologizeR_relabeledLabelMarginals", (DL_FUNC) &_homologizeR_relabeledLabelMarginals, 2},
+    {"_homologizeR_relabelPhaseAndTrees", (DL_FUNC) &_homologizeR_relabelPhaseAndTrees, 10},
     {NULL, NULL, 0}
 };
 

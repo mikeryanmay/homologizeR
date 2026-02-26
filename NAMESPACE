@@ -1,3 +1,6 @@
 exportPattern("^[[:alpha:]]+")
 importFrom(Rcpp, evalCpp)
+importFrom(ggplot2, ggplot_add)
+S3method(ggplot_add,phase_marginals_layer)
+S3method(ggplot_add,phase_panel_width_layer)
 useDynLib(homologizeR, .registration = TRUE)
