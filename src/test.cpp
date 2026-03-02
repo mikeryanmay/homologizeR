@@ -1,8 +1,8 @@
 #include <Rcpp.h>
 #include <cmath>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
-#include <regex>
 #include <unordered_map>
 #include <unordered_set>
 #include "trees.hpp"
@@ -18,6 +18,21 @@ typedef std::map<std::int64_t, std::map<std::string, std::vector<std::string>>> 
 
 namespace {
 
+void ensure_parent_directory_exists(const std::string& filepath) {
+    namespace fs = std::filesystem;
+    const fs::path p(filepath);
+    const fs::path parent = p.parent_path();
+    if (parent.empty()) return;
+
+    std::error_code ec;
+    fs::create_directories(parent, ec);
+    if (ec) {
+        throw std::runtime_error(
+            "Failed to create output directory '" + parent.string() + "': " + ec.message()
+        );
+    }
+}
+
 std::string join_tsv_line(const std::vector<std::string>& fields) {
     if (fields.empty()) return "";
     std::string out = fields[0];
@@ -28,44 +43,30 @@ std::string join_tsv_line(const std::vector<std::string>& fields) {
     return out;
 }
 
-std::string regex_escape(const std::string& s) {
-    std::string out;
-    out.reserve(s.size() * 2);
-    for (char ch : s) {
-        switch (ch) {
-            case '\\':
-            case '^':
-            case '$':
-            case '.':
-            case '|':
-            case '?':
-            case '*':
-            case '+':
-            case '(':
-            case ')':
-            case '[':
-            case ']':
-            case '{':
-            case '}':
-                out.push_back('\\');
-                out.push_back(ch);
-                break;
-            default:
-                out.push_back(ch);
-                break;
-        }
-    }
-    return out;
-}
-
 void replace_tip_label_token(std::string& newick,
                              const std::string& from,
                              const std::string& to) {
-    if (from == to) return;
-    const std::string pat = "([\\(,])" + regex_escape(from) + "(?=\\[|:|,|\\)|;)";
-    const std::regex re(pat);
-    const std::string rep = "$1" + to;
-    newick = std::regex_replace(newick, re, rep);
+    if (from == to || from.empty()) return;
+
+    std::size_t pos = 0;
+    while ((pos = newick.find(from, pos)) != std::string::npos) {
+        const std::size_t end = pos + from.size();
+
+        // Match only full tip-label tokens in Newick context:
+        // left boundary: '(' or ','
+        // right boundary: '[', ':', ',', ')', ';', or end-of-string.
+        const bool left_ok = (pos > 0) && (newick[pos - 1] == '(' || newick[pos - 1] == ',');
+        const bool right_ok = (end >= newick.size()) ||
+            (newick[end] == '[' || newick[end] == ':' || newick[end] == ',' ||
+             newick[end] == ')' || newick[end] == ';');
+
+        if (left_ok && right_ok) {
+            newick.replace(pos, from.size(), to);
+            pos += to.size();
+        } else {
+            pos += from.size();
+        }
+    }
 }
 
 std::vector<std::vector<std::string>> parse_allelic_tips_list(const Rcpp::List& allelic_tips) {
@@ -658,6 +659,11 @@ void relabelPhaseAndTrees(Rcpp::CharacterVector phase_files,
     const std::string output_relabel_map_file = output_prefix + output_relabel_map_suffix;
     const std::string output_locus_manifest_file = output_prefix + output_locus_manifest_suffix;
     const std::string output_marginal_file = output_prefix + output_marginal_suffix;
+    ensure_parent_directory_exists(output_partition_file);
+    ensure_parent_directory_exists(output_tree_file);
+    ensure_parent_directory_exists(output_relabel_map_file);
+    ensure_parent_directory_exists(output_locus_manifest_file);
+    ensure_parent_directory_exists(output_marginal_file);
 
     if (phase_files.size() == 0) {
         stop("phase_files must contain at least one file path.");
@@ -694,7 +700,7 @@ void relabelPhaseAndTrees(Rcpp::CharacterVector phase_files,
     {
         std::ofstream out_part(output_partition_file);
         if (!out_part) {
-            stop("Failed to open output partition file for writing.");
+            stop("Failed to open output partition file for writing: %s", output_partition_file.c_str());
         }
 
         out_part << "Iteration";
@@ -723,7 +729,7 @@ void relabelPhaseAndTrees(Rcpp::CharacterVector phase_files,
     {
         std::ofstream out_map(output_relabel_map_file);
         if (!out_map) {
-            stop("Failed to open output relabel map file for writing.");
+            stop("Failed to open output relabel map file for writing: %s", output_relabel_map_file.c_str());
         }
 
         out_map << "Iteration";
@@ -747,7 +753,7 @@ void relabelPhaseAndTrees(Rcpp::CharacterVector phase_files,
     std::ifstream in_tree(tree_file);
     if (!in_tree) stop("Failed to open tree_file.");
     std::ofstream out_tree(output_tree_file);
-    if (!out_tree) stop("Failed to open output_tree_file for writing.");
+    if (!out_tree) stop("Failed to open output_tree_file for writing: %s", output_tree_file.c_str());
 
     std::string line;
     if (!std::getline(in_tree, line)) stop("tree_file is empty.");
